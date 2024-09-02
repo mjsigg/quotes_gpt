@@ -1,38 +1,21 @@
 from datetime import date
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel, field_validator
 from typing import Optional, List, Dict
 
 class Author(BaseModel):
-    '''
-    All fields are optional. We will create an Unknown class for those who can't be cited.
-    '''
-    quotes_bank: Optional[Dict[str, str]] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
     alias: Optional[List[str]] = None
-    dob: Optional[date | str] = None
-    birthplace: Optional[str] = None
-    died: Optional[date | str] = None
-    age: Optional[int] = None
+    quotes:list[str]
+    
+    def validate_author(self):
+        if not self.first_name and not self.middle_name and not self.alias:
+            raise ValueError("All identifiers of class are empty.")
+        
+    def get_author_full_name(self):
+        return (f'{self.first_name} {self.last_name}')
 
-    @classmethod
-    def initialize(cls, 
-                   first_name: str, 
-                   last_name: str, 
-                   middle_name: Optional[str] = None, 
-                   dob: Optional[date] = None, 
-                   birthplace: Optional[str] = None) -> 'Author':
-        # Initialize fields with default values if not provided
-        quotes_bank = {}
-        alias = []
-
-        return cls(
-            first_name=first_name,
-            last_name=last_name,
-            middle_name=middle_name,
-            dob=dob,
-            birthplace=birthplace,
-            quotes_bank=quotes_bank,
-            alias=alias
-        )
+    def print_quotes(self):
+        for quote in self.quotes:
+            print(quote)

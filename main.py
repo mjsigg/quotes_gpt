@@ -1,7 +1,13 @@
-import openai
-from models import Author
+from pydoc import cli
+from models import author
+from models.author import Author
+from models.psuedo_db import PseudoDB
 from openai import OpenAI
 from dotenv import load_dotenv
+from managers.context_managers import SystemContextManager, generate_role_system_content, generate_role_user_content
+from services.model_calls import generate_author
+
+
 import os
 def main():
     load_dotenv()
@@ -10,27 +16,36 @@ def main():
         api_key=os.getenv('OPEN_API_KEY')
     )
 
+    file_path:str = './data'
+    if not os.path.exists(file_path):
+        raise ValueError("Paht doesn't exist")
+    
     print("Starting app.")
-    Mark_Twain = Author(first_name="Samuel", middle_name="Langhorne", last_name="Clemens", birthplace="Redding, Connecticut", dob="November 30, 1835", alias=["Mark Twain"], age=74)
 
-    test = f'''
-    INSTRUCTIONS: Please return 3 famous quotes from {Mark_Twain.alias[0]}.  Try to return one from 3 points of his life: early, middle, later.
+    db:PseudoDB = PseudoDB()
 
-    '''
+    system_context_manager = SystemContextManager()
+    system_instructions:str = system_context_manager.generate_instructions()
+    system_content = generate_role_system_content(system_instructions)
 
-    message = [
-        {"role": "system", "content": f"{test}"}
-    ]
+    current_user_input = "Do you know Robert Frost?"
+    user_input_content = generate_role_user_content(user_query=current_user_input)
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=message
-    )
+    new_author:Author = generate_author(user_input_content, 
+                                        system_content, 
+                                        client)
+    if new_author:
+        db.add_author(new_author)
+        
+        get_rob:Author = db.authors.get('Robert Frost')
+        
+        print(f"Hello, it's me, {get_rob.get_author_full_name()}! ")
+        get_rob.print_quotes()
+        
 
-    print(response.choices[0].message.content)
+        
 
-
-
+    
     
 if __name__ == "__main__":
     main()
